@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Search and request recorded messages from Christ's Church of Starke, 1983 to 2010.">
+<title>Message Finder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a dark "tape shelf" header with search, then a browse panel, then the message list; selected messages collect in a request tray. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #18202d;
+  --muted: #5b6475;
+  --line: #dfe3ea;
+  --gold: #9c7424;
+  --gold-soft: #f3ead6;
+  --band: #141b27;
+  --band-ink: #eef0f4;
+  --band-muted: #a9b1c0;
+  --band-gold: #d7b061;
+  --chip: #eef1f5;
+  --focus: #2f6fd6;
+  --display: "Spectral", Georgia, "Times New Roman", serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f141d; --surface: #161d29; --ink: #e7eaf0; --muted: #9aa3b4; --line: #273042;
+  --gold: #d7b061; --gold-soft: #2b2617; --band: #0b1018; --band-ink: #eef0f4; --band-muted: #9aa3b4;
+  --band-gold: #d7b061; --chip: #1e2635; --focus: #7aa7ff; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f141d; --surface: #161d29; --ink: #e7eaf0; --muted: #9aa3b4; --line: #273042;
+  --gold: #d7b061; --gold-soft: #2b2617; --band: #0b1018; --band-ink: #eef0f4; --band-muted: #9aa3b4;
+  --band-gold: #d7b061; --chip: #1e2635; --focus: #7aa7ff; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* header band */
+.band { background: var(--band); color: var(--band-ink); margin-top: calc(-1 * env(safe-area-inset-top, 0px)); padding-top: calc(env(safe-area-inset-top, 0px) + 28px); padding-bottom: 26px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--band-gold); font-weight: 600; }
+h1 { font-family: var(--display); font-weight: 600; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 6px 0 6px; text-wrap: balance; }
+.lede { color: var(--band-muted); max-width: 62ch; margin: 0 0 18px; }
+.search { display: flex; gap: 8px; align-items: center; background: var(--surface); border-radius: 10px; padding: 6px 6px 6px 14px; max-width: 720px; }
+.search svg { flex: none; color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; background: transparent; font-size: 17px; padding: 10px 4px; color: var(--ink); outline: none; }
+.search button { border: 0; background: transparent; color: var(--muted); padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.search button:hover { background: var(--chip); }
+.hints { margin-top: 10px; font-size: 13px; color: var(--band-muted); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.hints button { background: transparent; border: 1px solid rgba(215,176,97,.45); color: var(--band-ink); border-radius: 999px; padding: 3px 10px; cursor: pointer; font-size: 13px; }
+.hints button:hover { border-color: var(--band-gold); }
+
+/* browse */
+.browse { padding-block: 22px 8px; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tab { border: 0; background: transparent; padding: 10px 14px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--gold); }
+.panel { padding-block: 14px 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: baseline; gap: 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font-size: 14px; }
+.chip:hover { border-color: var(--gold); }
+.chip[aria-pressed="true"] { background: var(--gold-soft); border-color: var(--gold); }
+.chip .n { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.testament { margin-bottom: 12px; }
+.testament h3, .panel h3 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 4px 0 8px; font-weight: 600; }
+.books { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 6px; }
+.book { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 10px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; font-size: 14px; }
+.book:disabled { opacity: .38; cursor: default; }
+.book:not(:disabled):hover { border-color: var(--gold); }
+.book[aria-pressed="true"] { background: var(--gold-soft); border-color: var(--gold); }
+.book .n { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.serieslist { max-height: 340px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.serieslist button { display: flex; width: 100%; justify-content: space-between; gap: 12px; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 9px 12px; cursor: pointer; }
+.serieslist button:last-child { border-bottom: 0; }
+.serieslist button:hover, .serieslist button[aria-pressed="true"] { background: var(--gold-soft); }
+.serieslist .n { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.mini { display: flex; gap: 8px; margin-bottom: 10px; }
+.mini input { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 8px 10px; }
+.years { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 6px; }
+.year { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; font-family: var(--mono); font-size: 13px; }
+.year:disabled { opacity: .35; cursor: default; }
+.year[aria-pressed="true"] { background: var(--gold-soft); border-color: var(--gold); }
+.year .n { display: block; font-size: 11px; color: var(--muted); }
+
+/* results bar */
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding-block: 10px; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.barrow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.count { font-weight: 600; }
+.count span { font-family: var(--mono); }
+.active { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill { display: inline-flex; align-items: center; gap: 6px; background: var(--gold-soft); border: 1px solid var(--gold); border-radius: 999px; padding: 3px 6px 3px 10px; font-size: 13px; }
+.pill button { border: 0; background: transparent; cursor: pointer; padding: 0 4px; font-size: 15px; line-height: 1; color: var(--muted); }
+.clear { border: 0; background: transparent; color: var(--gold); cursor: pointer; font-size: 13px; text-decoration: underline; }
+.sort { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.sort select { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 8px; }
+
+/* list */
+.list { list-style: none; margin: 0; padding: 6px 0 120px; }
+.item { display: grid; grid-template-columns: 92px minmax(0, 1fr) auto; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); align-items: start; }
+.when { font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 1.35; }
+.when b { display: block; color: var(--ink); font-weight: 500; font-size: 14px; }
+.title { font-family: var(--display); font-size: 19px; font-weight: 500; line-height: 1.3; margin: 0; }
+.title.none { font-style: italic; color: var(--muted); }
+.meta { color: var(--muted); font-size: 14px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.meta .ref { color: var(--ink); }
+.tags { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { border: 0; background: var(--chip); border-radius: 6px; padding: 2px 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.tag:hover { color: var(--ink); }
+.tag.series { background: var(--gold-soft); color: var(--ink); }
+.acts { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.req { display: inline-block; text-align: center; background: var(--ink); color: var(--bg); text-decoration: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.req:hover { background: var(--gold); color: #fff; }
+.add { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.add[aria-pressed="true"] { background: var(--gold-soft); border-color: var(--gold); }
+.more { display: block; margin: 18px auto 0; border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 10px 18px; cursor: pointer; font-weight: 500; }
+.empty { padding: 40px 0; color: var(--muted); text-align: center; }
+
+/* tray */
+.tray { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--band); color: var(--band-ink); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); padding-top: 12px; box-shadow: 0 -6px 24px rgba(0,0,0,.18); }
+.trayrow { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.tray .picked { font-size: 14px; color: var(--band-muted); min-width: 0; }
+.tray .picked b { color: var(--band-ink); }
+.tray .btns { display: flex; gap: 8px; }
+.tray .go { background: var(--band-gold); color: #141b27; border-radius: 8px; padding: 9px 16px; font-weight: 600; text-decoration: none; }
+.tray .x { border: 1px solid rgba(255,255,255,.25); background: transparent; color: var(--band-ink); border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.trayitems { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--band-muted); max-height: 92px; overflow: auto; }
+
+@media (max-width: 640px) {
+  .item { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .when { display: flex; gap: 8px; align-items: baseline; }
+  .when b { display: inline; }
+  .acts { flex-direction: row; }
+  .req, .add { flex: 1; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; } }
+</style>
+<style>[hidden]{display:none!important} body{margin:0} img{max-width:100%}</style>
+</head>
+<body>
+
+
+<header class="band">
+  <div class="wrap">
+    <div class="eyebrow">Christ's Church of Starke · Message Archive</div>
+    <h1>Find a Message</h1>
+    <p class="lede" id="lede">Messages from 1983 to 2010 are available by request. Search or browse below, then tap Request and we'll get it to you.</p>
+    <div class="search" role="search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <input id="q" type="search" placeholder="Search a title, preacher, verse or subject (try “John 15” or “faith”)" autocomplete="off" aria-label="Search messages">
+      <button id="qclear" type="button" hidden aria-label="Clear search">Clear</button>
+    </div>
+    <div class="hints">Try:
+      <button type="button" data-q="Romans 8">Romans 8</button>
+      <button type="button" data-q="Holy Spirit">Holy Spirit</button>
+      <button type="button" data-q="Thanksgiving">Thanksgiving</button>
+      <button type="button" data-q="Dana Williams">Dana Williams</button>
+      <button type="button" data-q="Psalm 23">Psalm 23</button>
+    </div>
+  </div>
+</header>
+
+<section class="browse wrap" aria-label="Browse">
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-topic" aria-selected="true" data-tab="topic">Topic</button>
+    <button class="tab" role="tab" id="t-book" aria-selected="false" data-tab="book">Book of the Bible</button>
+    <button class="tab" role="tab" id="t-series" aria-selected="false" data-tab="series">Series</button>
+    <button class="tab" role="tab" id="t-preacher" aria-selected="false" data-tab="preacher">Preacher</button>
+    <button class="tab" role="tab" id="t-year" aria-selected="false" data-tab="year">Year</button>
+    <button class="tab" role="tab" id="t-kind" aria-selected="false" data-tab="kind">Type</button>
+  </div>
+  <div class="panel" id="panel" role="tabpanel"></div>
+</section>
+
+<div class="bar">
+  <div class="wrap barrow">
+    <div class="active">
+      <span class="count" id="count">Loading messages…</span>
+      <span id="pills" class="active"></span>
+    </div>
+    <label class="sort" for="sort">Sort
+      <select id="sort">
+        <option value="new">Newest first</option>
+        <option value="old">Oldest first</option>
+        <option value="bible">Bible order</option>
+        <option value="preacher">Preacher</option>
+        <option value="title">Title A–Z</option>
+      </select>
+    </label>
+  </div>
+</div>
+
+<main class="wrap">
+  <ol class="list" id="list"></ol>
+  <div id="emptymsg" class="empty" hidden>No messages match. Try fewer words or clear a filter.</div>
+  <button id="more" class="more" type="button" hidden>Show more</button>
+</main>
+
+<div class="tray" id="tray" hidden>
+  <div class="wrap">
+    <div class="trayrow">
+      <div class="picked" id="picked"></div>
+      <div class="btns">
+        <button class="x" id="trayclear" type="button">Clear list</button>
+        <a class="go" id="traygo" href="#" target="_blank" rel="noopener">Request these</a>
+      </div>
+    </div>
+    <ul class="trayitems" id="trayitems"></ul>
+  </div>
+</div>
+
+<script>
+const FORM = "https://docs.google.com/forms/d/1keYcYOE1IG0qVdd71m1T5e-sBf5bJcQ1sSJw51JtHF0/viewform?usp=pp_url";
+const E = { date: "677186984", svc: "2112962837", preacher: "1304248485", title: "1713288858", ref: "474779442", series: "159060632", more: "1650504126" };
+const SVC = { AM: "AM (morning service)", PM: "PM (evening service)", WED: "WED (Wednesday service)" };
+const SVC_LABEL = { AM: "Morning", PM: "Evening", WED: "Wednesday", SR: "Sunrise", "AM/PM": "Combined" };
+const ALIAS = { jn: "john", mt: "matthew", matt: "matthew", mk: "mark", lk: "luke", rom: "romans", cor: "corinthians", gal: "galatians", eph: "ephesians", phil: "philippians", col: "colossians", thes: "thessalonians", thess: "thessalonians", tim: "timothy", heb: "hebrews", jam: "james", pet: "peter", rev: "revelation", ps: "psalms", psalm: "psalms", prov: "proverbs", gen: "genesis", isa: "isaiah", jer: "jeremiah", ezek: "ezekiel", "1jn": "1 john", lester: "lester" };
+const OT = ["Genesis","Exodus","Leviticus","Numbers","Deuteronomy","Joshua","Judges","Ruth","1 Samuel","2 Samuel","1 Kings","2 Kings","1 Chronicles","2 Chronicles","Ezra","Nehemiah","Esther","Job","Psalms","Proverbs","Ecclesiastes","Song of Solomon","Isaiah","Jeremiah","Lamentations","Ezekiel","Daniel","Hosea","Joel","Amos","Obadiah","Jonah","Micah","Nahum","Habakkuk","Zephaniah","Haggai","Zechariah","Malachi"];
+const NT = ["Matthew","Mark","Luke","John","Acts","Romans","1 Corinthians","2 Corinthians","Galatians","Ephesians","Philippians","Colossians","1 Thessalonians","2 Thessalonians","1 Timothy","2 Timothy","Titus","Philemon","Hebrews","James","1 Peter","2 Peter","1 John","2 John","3 John","Jude","Revelation"];
+const KINDS = ["Bible Study (Verse by Verse)","Bible Study (Passage)","Topical Series","Single Message","Revival / Special Meeting","Holiday: Easter","Holiday: Thanksgiving","Holiday: New Year","Holiday: Mother's Day","Holiday: Father's Day","Missionary","Special Service","Title Not Recorded"];
+const PAGE = 40;
+
+let ALL = [], view = [], shown = PAGE, tab = "topic", seriesFilter = "";
+const F = { topic: "", book: "", series: "", preacher: "", year: "", kind: "" };
+const picked = new Map();
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const enc = encodeURIComponent;
+const fmtDate = (d) => { const [y, m, dd] = d.split("-"); return `${+m}/${+dd}/${y}`; };
+const code = (r) => r.d.slice(5, 7) + r.d.slice(8, 10) + r.d.slice(2, 4) + (r.s || "").toLowerCase().replace("/", "");
+
+function norm(s) {
+  return String(s).toLowerCase().replace(/[.’']/g, " ").replace(/(\d)\s+(?=[a-z])/g, "$1 ").split(/[^a-z0-9:]+/).filter(Boolean)
+    .map((w) => ALIAS[w] || w).join(" ");
+}
+
+function requestUrl(r, extra) {
+  let u = `${FORM}&entry.${E.date}=${r.d}&entry.${E.svc}=${enc(SVC[r.s] || "")}&entry.${E.preacher}=${enc(r.p)}&entry.${E.title}=${enc(r.t || "Title not recorded")}&entry.${E.ref}=${enc(r.r)}&entry.${E.series}=${enc(r.se)}`;
+  if (extra) u += `&entry.${E.more}=${enc(extra)}`;
+  return u;
+}
+
+function counts(key, rows) {
+  const m = new Map();
+  for (const r of rows) { const k = r[key]; if (k !== "" && k != null) m.set(k, (m.get(k) || 0) + 1); }
+  return m;
+}
+
+function matches(r, except) {
+  if (F.topic && except !== "topic" && r.tp !== F.topic) return false;
+  if (F.book && except !== "book" && r.b !== F.book) return false;
+  if (F.series && except !== "series" && r.se !== F.series) return false;
+  if (F.preacher && except !== "preacher" && r.p !== F.preacher) return false;
+  if (F.year && except !== "year" && r.y !== F.year) return false;
+  if (F.kind && except !== "kind" && r.ca !== F.kind) return false;
+  return true;
+}
+function searchHit(r, terms) { return terms.every((t) => r.hay.includes(t)); }
+function currentTerms() { const q = norm($("q").value.trim()); return q ? q.split(" ") : []; }
+
+function sortRows(rows) {
+  const s = $("sort").value, svc = { AM: 0, SR: 0, "AM/PM": 1, PM: 2, WED: 3, "": 4 };
+  const byDate = (a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : (svc[a.s] ?? 5) - (svc[b.s] ?? 5);
+  const f = {
+    new: (a, b) => -byDate(a, b),
+    old: byDate,
+    bible: (a, b) => (a.bo || 99) - (b.bo || 99) || a.c - b.c || a.v - b.v || byDate(a, b),
+    preacher: (a, b) => a.p.localeCompare(b.p) || -byDate(a, b),
+    title: (a, b) => (!a.t) - (!b.t) || a.t.localeCompare(b.t, undefined, { numeric: true }) || -byDate(a, b),
+  }[s];
+  return rows.slice().sort(f);
+}
+
+function apply(resetPage = true) {
+  const terms = currentTerms();
+  view = sortRows(ALL.filter((r) => matches(r) && searchHit(r, terms)));
+  if (resetPage) shown = PAGE;
+  $("qclear").hidden = !$("q").value;
+  renderList(); renderPills(); renderPanel();
+}
+
+function renderList() {
+  const list = $("list");
+  const rows = view.slice(0, shown);
+  $("count").innerHTML = `<span>${view.length.toLocaleString()}</span> ${view.length === 1 ? "message" : "messages"}`;
+  list.innerHTML = rows.map((r) => {
+    const i = r.i, on = picked.has(i);
+    const meta = [r.p ? esc(r.p) : "", r.r ? `<span class="ref">${esc(r.r)}</span>` : (r.b ? esc(r.b) : "")].filter(Boolean).join("</span><span>");
+    return `<li class="item">
+      <div class="when"><b>${fmtDate(r.d)}</b>${esc(SVC_LABEL[r.s] || r.s || "")}<br><span title="Recording code">${esc(code(r))}</span></div>
+      <div>
+        <p class="title${r.t ? "" : " none"}">${r.t ? esc(r.t) : "Title not recorded"}</p>
+        <div class="meta"><span>${meta}</span></div>
+        <div class="tags">
+          ${r.se ? `<button class="tag series" type="button" data-f="series" data-v="${esc(r.se)}" title="Show this series">${esc(r.se)}</button>` : ""}
+          ${r.tp ? `<button class="tag" type="button" data-f="topic" data-v="${esc(r.tp)}" title="Show this topic">${esc(r.tp)}</button>` : ""}
+          <button class="tag" type="button" data-f="kind" data-v="${esc(r.ca)}" title="Show this type">${esc(r.ca)}</button>
+        </div>
+      </div>
+      <div class="acts">
+        <a class="req" href="${esc(requestUrl(r))}" target="_blank" rel="noopener">Request</a>
+        <button class="add" type="button" data-pick="${i}" aria-pressed="${on}">${on ? "✓ In list" : "+ Add to list"}</button>
+      </div>
+    </li>`;
+  }).join("");
+  $("emptymsg").hidden = view.length > 0;
+  $("more").hidden = shown >= view.length;
+  $("more").textContent = `Show more (${(view.length - shown).toLocaleString()} left)`;
+}
+
+const LABEL = { topic: "Topic", book: "Book", series: "Series", preacher: "Preacher", year: "Year", kind: "Type" };
+function renderPills() {
+  const ps = Object.entries(F).filter(([, v]) => v);
+  $("pills").innerHTML = ps.map(([k, v]) => `<span class="pill">${LABEL[k]}: ${esc(v)}<button type="button" data-unset="${k}" aria-label="Remove ${LABEL[k]} filter">×</button></span>`).join("")
+    + (ps.length || $("q").value ? `<button class="clear" type="button" id="clearall">Clear all</button>` : "");
+}
+
+function renderPanel() {
+  const terms = currentTerms();
+  const base = (except) => ALL.filter((r) => matches(r, except) && searchHit(r, terms));
+  const p = $("panel");
+  if (tab === "topic") {
+    const c = counts("tp", base("topic"));
+    const keys = [...c.keys()].sort((a, b) => c.get(b) - c.get(a));
+    p.innerHTML = `<div class="chips">${keys.map((k) => `<button class="chip" type="button" data-f="topic" data-v="${esc(k)}" aria-pressed="${F.topic === k}">${esc(k)} <span class="n">${c.get(k)}</span></button>`).join("")}</div>`;
+  } else if (tab === "book") {
+    const c = counts("b", base("book"));
+    const grid = (names) => names.map((b) => `<button class="book" type="button" data-f="book" data-v="${esc(b)}" aria-pressed="${F.book === b}" ${c.get(b) ? "" : "disabled"}><span>${esc(b)}</span><span class="n">${c.get(b) || ""}</span></button>`).join("");
+    p.innerHTML = `<div class="testament"><h3>Old Testament</h3><div class="books">${grid(OT)}</div></div><div class="testament"><h3>New Testament</h3><div class="books">${grid(NT)}</div></div>`;
+  } else if (tab === "series") {
+    const rows = base("series");
+    const c = counts("se", rows);
+    const first = new Map();
+    for (const r of rows) if (r.se && (!first.has(r.se) || r.d < first.get(r.se))) first.set(r.se, r.d);
+    const f = seriesFilter.toLowerCase();
+    const keys = [...c.keys()].filter((k) => !f || k.toLowerCase().includes(f)).sort((a, b) => a.localeCompare(b));
+    p.innerHTML = `<div class="mini"><input id="sfilter" type="search" placeholder="Filter ${c.size} series…" value="${esc(seriesFilter)}" aria-label="Filter series"></div>
+      <div class="serieslist">${keys.map((k) => `<button type="button" data-f="series" data-v="${esc(k)}" aria-pressed="${F.series === k}"><span>${esc(k)}</span><span class="n">${c.get(k)} · ${first.get(k).slice(0, 4)}</span></button>`).join("") || `<div class="empty">No series match.</div>`}</div>`;
+    const sf = $("sfilter");
+    sf.addEventListener("input", () => { seriesFilter = sf.value; const pos = sf.selectionStart; renderPanel(); const n = $("sfilter"); n.focus(); n.setSelectionRange(pos, pos); });
+  } else if (tab === "preacher") {
+    const c = counts("p", base("preacher"));
+    const keys = [...c.keys()].sort((a, b) => c.get(b) - c.get(a) || a.localeCompare(b));
+    p.innerHTML = `<div class="chips">${keys.map((k) => `<button class="chip" type="button" data-f="preacher" data-v="${esc(k)}" aria-pressed="${F.preacher === k}">${esc(k)} <span class="n">${c.get(k)}</span></button>`).join("")}</div>`;
+  } else if (tab === "year") {
+    const c = counts("y", base("year"));
+    const years = []; for (let y = 1983; y <= 2010; y++) years.push(String(y));
+    p.innerHTML = `<div class="years">${years.map((y) => `<button class="year" type="button" data-f="year" data-v="${y}" aria-pressed="${F.year === y}" ${c.get(y) ? "" : "disabled"}>${y}<span class="n">${c.get(y) || "–"}</span></button>`).join("")}</div>`;
+  } else if (tab === "kind") {
+    const c = counts("ca", base("kind"));
+    p.innerHTML = `<div class="chips">${KINDS.filter((k) => c.get(k)).map((k) => `<button class="chip" type="button" data-f="kind" data-v="${esc(k)}" aria-pressed="${F.kind === k}">${esc(k)} <span class="n">${c.get(k)}</span></button>`).join("")}</div>`;
+  }
+}
+
+function renderTray() {
+  const items = [...picked.values()];
+  $("tray").hidden = items.length === 0;
+  if (!items.length) return;
+  $("picked").innerHTML = `<b>${items.length}</b> ${items.length === 1 ? "message" : "messages"} in your request list`;
+  $("trayitems").innerHTML = items.map((r) => `<li>${fmtDate(r.d)} ${esc(r.s)} · ${esc(r.p)} · ${esc(r.t || "Title not recorded")}</li>`).join("");
+  const [first, ...rest] = items;
+  const extra = rest.map((r) => `${fmtDate(r.d)} ${r.s} - ${r.p} - ${r.t || "Title not recorded"}${r.r ? " (" + r.r + ")" : ""}`).join("\n");
+  $("traygo").href = requestUrl(first, extra);
+}
+
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("button, a");
+  if (!t) return;
+  if (t.dataset.tab) {
+    tab = t.dataset.tab;
+    document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", b === t));
+    renderPanel(); return;
+  }
+  if (t.dataset.f) { const k = t.dataset.f, v = t.dataset.v; F[k] = F[k] === v ? "" : v; apply(); return; }
+  if (t.dataset.unset) { F[t.dataset.unset] = ""; apply(); return; }
+  if (t.id === "clearall") { for (const k in F) F[k] = ""; $("q").value = ""; apply(); return; }
+  if (t.id === "qclear") { $("q").value = ""; apply(); $("q").focus(); return; }
+  if (t.dataset.q) { $("q").value = t.dataset.q; apply(); return; }
+  if (t.dataset.pick) {
+    const i = +t.dataset.pick, r = ALL[i];
+    if (picked.has(i)) picked.delete(i); else if (picked.size < 15) picked.set(i, r);
+    renderList(); renderTray(); return;
+  }
+  if (t.id === "trayclear") { picked.clear(); renderList(); renderTray(); return; }
+  if (t.id === "more") { shown += PAGE; renderList(); return; }
+});
+let qt;
+$("q").addEventListener("input", () => { clearTimeout(qt); qt = setTimeout(apply, 120); });
+$("sort").addEventListener("change", () => apply());
+
+fetch("messages.json").then((r) => r.json()).then((rows) => {
+  ALL = rows.map((r, i) => Object.assign(r, { i, y: r.d.slice(0, 4),
+    hay: norm([r.t, r.p, r.r, r.b, r.tp, r.se, r.ca, r.d.slice(0, 4), fmtDate(r.d), SVC_LABEL[r.s] || ""].join(" ")) }));
+  const preachers = new Set(ALL.map((r) => r.p)).size;
+  $("lede").textContent = `${ALL.length.toLocaleString()} messages from ${preachers} preachers, 1983 to 2010, are available by request. Search or browse below, then tap Request and we'll get it to you.`;
+  apply();
+}).catch(() => { $("count").textContent = "Couldn't load the message list. Refresh the page to try again."; });
+</script>
+
+</body>
+</html>
